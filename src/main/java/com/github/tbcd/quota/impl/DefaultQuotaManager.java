@@ -1,20 +1,13 @@
 package com.github.tbcd.quota.impl;
 
 import com.github.tbcd.quota.*;
-import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
 public class DefaultQuotaManager implements QuotaManager {
 
 	private final ResourceCounterRegistry resourceCounterRegistry;
 	private final QuotaLimitResolver limitResolver;
-
-	public DefaultQuotaManager(ResourceCounterRegistry resourceCounterRegistry) {
-		this.resourceCounterRegistry = resourceCounterRegistry;
-		this.limitResolver = new EmptyQuotaLimitResolver();
-	}
 
 	public DefaultQuotaManager(ResourceCounterRegistry resourceCounterRegistry, QuotaLimitResolver limitResolver) {
 		this.resourceCounterRegistry = resourceCounterRegistry;

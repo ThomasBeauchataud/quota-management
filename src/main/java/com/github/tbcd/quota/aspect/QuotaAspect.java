@@ -6,13 +6,16 @@ import org.aspectj.lang.annotation.Before;
 import org.springframework.stereotype.Component;
 
 @Aspect
-@Component
 public class QuotaAspect {
 
 //	private final QuotaManager quotaManager;
+//	private final TenantResolver tenantResolver;
 //
-//	public QuotaAspect(QuotaManager quotaManager) {
+//	public QuotaAspect(QuotaManager quotaManager,
+//					   TenantResolver tenantResolver
+//	) {
 //		this.quotaManager = quotaManager;
+//		this.tenantResolver = tenantResolver;
 //	}
 //
 //	@Before("@annotation(quota)")

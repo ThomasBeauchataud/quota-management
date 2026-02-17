@@ -3,16 +3,16 @@ package com.github.tbcd.quota.impl;
 import com.github.tbcd.quota.ResourceCounter;
 import com.github.tbcd.quota.ResourceCounterRegistry;
 import com.github.tbcd.quota.Tenant;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 public class DefaultResourceCounterRegistry implements ResourceCounterRegistry {
 
 	private final List<ResourceCounter> resourceCounters;
 
-	public DefaultResourceCounterRegistry(List<ResourceCounter> resourceCounters) {
+	public DefaultResourceCounterRegistry(@Lazy List<ResourceCounter> resourceCounters) {
 		this.resourceCounters = resourceCounters;
 	}
 

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
 public class EmptyQuotaLimitResolver implements QuotaLimitResolver {
 
 	@Override

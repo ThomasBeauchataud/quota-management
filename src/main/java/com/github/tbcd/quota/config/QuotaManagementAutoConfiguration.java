@@ -5,6 +5,7 @@ import com.github.tbcd.quota.aspect.QuotaAspect;
 import com.github.tbcd.quota.impl.DefaultQuotaManager;
 import com.github.tbcd.quota.impl.DefaultResourceCounterRegistry;
 import com.github.tbcd.quota.impl.EmptyQuotaLimitResolver;
+import com.github.tbcd.quota.impl.NullTenantResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +14,7 @@ import org.springframework.context.annotation.Lazy;
 import java.util.List;
 
 @AutoConfiguration
-public class QuotaManagerAutoConfiguration {
+public class QuotaManagementAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -36,9 +37,7 @@ public class QuotaManagerAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public TenantResolver tenantResolver() {
-		return () -> {
-			throw new IllegalStateException("No TenantResolver configured. Please provide a TenantResolver bean.");
-		};
+		return new NullTenantResolver();
 	}
 
 	@Bean

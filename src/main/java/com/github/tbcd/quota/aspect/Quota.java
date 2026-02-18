@@ -14,40 +14,33 @@ import java.lang.annotation.Target;
  * resource. If the quota would be exceeded, a {@link QuotaExceededException}
  * is thrown and the method is not executed.</p>
  *
- * <p>The tenant is resolved automatically using the configured
- * {@link com.github.tbcd.quota.TenantResolver}.</p>
- *
  * <p>Basic usage:</p>
  * <pre>{@code
- * @PostMapping
  * @Quota(resource = Recipe.class)
  * public RecipeDto createRecipe(@RequestBody CreateRecipeRequest request) {
  *     return recipeService.create(request);
  * }
  * }</pre>
  *
- * <p>With custom cost (for bulk operations):</p>
+ * <p>With SpEL expression for tenant:</p>
  * <pre>{@code
- * @PostMapping("/bulk")
- * @Quota(resource = Recipe.class, cost = 10)
- * public List<RecipeDto> bulkCreate(@RequestBody List<CreateRecipeRequest> requests) {
- *     return recipeService.createAll(requests);
+ * @Quota(resource = Recipe.class, tenant = "#recipe.getAuthor()")
+ * public RecipeDto createRecipe(Recipe recipe) {
+ *     return recipeService.create(recipe);
  * }
  * }</pre>
  *
- * <p>With custom error message:</p>
+ * <p>With parameter reference:</p>
  * <pre>{@code
- * @PostMapping
- * @Quota(resource = Recipe.class, message = "Upgrade to Pro to create more recipes")
- * public RecipeDto createRecipe(@RequestBody CreateRecipeRequest request) {
- *     return recipeService.create(request);
+ * @Quota(resource = Recipe.class, tenant = "#userId")
+ * public RecipeDto createRecipe(Long userId, CreateRecipeRequest request) {
+ *     return recipeService.create(userId, request);
  * }
  * }</pre>
  *
  * @see QuotaAspect
  * @see QuotaExceededException
  * @see com.github.tbcd.quota.QuotaManager
- * @see com.github.tbcd.quota.TenantResolver
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -57,21 +50,37 @@ public @interface Quota {
 	/**
 	 * The resource type to enforce quota on.
 	 *
-	 * <p>This class is used to look up the appropriate {@link com.github.tbcd.quota.ResourceCounter}
-	 * and {@link com.github.tbcd.quota.QuotaLimitResolver} for the quota check.</p>
-	 *
-	 * <p>Example: {@code Recipe.class}, {@code RecipeBook.class}</p>
-	 *
 	 * @return the resource class to check quota for
 	 */
 	Class<?> resource();
 
 	/**
-	 * The quota cost of the operation.
+	 * SpEL expression to resolve the tenant.
 	 *
-	 * <p>Specifies how many quota units this operation consumes. Defaults to 1
-	 * for single-resource operations. Increase for bulk operations or operations
-	 * that should consume more quota.</p>
+	 * <p>If empty, the default {@link com.github.tbcd.quota.TenantResolver} is used.</p>
+	 *
+	 * <p>The expression has access to method parameters by name using {@code #paramName}.</p>
+	 *
+	 * <p>Examples:</p>
+	 * <ul>
+	 *   <li>{@code "#userId"} - direct parameter</li>
+	 *   <li>{@code "#recipe.getAuthor()"} - method call on parameter</li>
+	 *   <li>{@code "#request.userId"} - property access</li>
+	 *   <li>{@code "#user.getId()"} - method call returning the tenant id</li>
+	 * </ul>
+	 *
+	 * <p>The expression must resolve to one of:</p>
+	 * <ul>
+	 *   <li>A {@link com.github.tbcd.quota.Tenant} instance</li>
+	 *   <li>A {@link String}, {@link Long}, or any object (will be wrapped in a Tenant)</li>
+	 * </ul>
+	 *
+	 * @return the SpEL expression, or empty to use the default TenantResolver
+	 */
+	String tenant() default "";
+
+	/**
+	 * The quota cost of the operation.
 	 *
 	 * @return the number of quota units consumed, defaults to 1
 	 */
@@ -79,11 +88,6 @@ public @interface Quota {
 
 	/**
 	 * Custom error message when quota is exceeded.
-	 *
-	 * <p>If not specified, a default message will be generated including
-	 * the resource type and current usage information.</p>
-	 *
-	 * <p>Example: {@code "Upgrade to Pro to create more recipes"}</p>
 	 *
 	 * @return the error message to use, or empty string for default message
 	 */

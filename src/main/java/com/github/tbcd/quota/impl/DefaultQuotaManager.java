@@ -30,48 +30,6 @@ public class DefaultQuotaManager implements QuotaManager {
 	}
 
 	@Override
-	public QuotaResult acquire(Tenant tenant, Object resource, long amount) {
-		QuotaResult checkResult = check(tenant, resource, amount);
-
-		if (!checkResult.allowed()) {
-			return checkResult;
-		}
-
-		Optional<Long> limitOpt = limitResolver.resolve(tenant, resource);
-
-		if (limitOpt.isEmpty()) {
-			return new QuotaResult.NoQuota(resource);
-		}
-
-		ResourceCounter counter = resourceCounterRegistry.getResourceCounter(tenant, resource);
-		counter.increment(tenant, resource, amount);
-
-		QuotaState state = new QuotaState(tenant, resource, counter.count(tenant, resource), limitOpt.get());
-
-		return new QuotaResult.Allowed(state);
-	}
-
-	@Override
-	public QuotaResult release(Tenant tenant, Object resource, long amount) {
-		Optional<Long> limitOpt = limitResolver.resolve(tenant, resource);
-
-		if (limitOpt.isEmpty()) {
-			return new QuotaResult.NoQuota(resource);
-		}
-
-		ResourceCounter counter = resourceCounterRegistry.getResourceCounter(tenant, resource);
-		counter.decrement(tenant, resource, amount);
-
-		QuotaState state = new QuotaState(tenant, resource, counter.count(tenant, resource), limitOpt.get());
-
-		if (state.getUsed() - amount > state.getLimit()) {
-			return new QuotaResult.Denied(state);
-		}
-
-		return new QuotaResult.Allowed(state);
-	}
-
-	@Override
 	public Optional<QuotaState> getState(Tenant tenant, Object resource) {
 		Optional<Long> limitOpt = limitResolver.resolve(tenant, resource);
 		if (limitOpt.isEmpty()) {

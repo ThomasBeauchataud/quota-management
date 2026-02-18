@@ -4,7 +4,6 @@ import com.github.tbcd.quota.ResourceCounter;
 import com.github.tbcd.quota.ResourceCounterRegistry;
 import com.github.tbcd.quota.Tenant;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 

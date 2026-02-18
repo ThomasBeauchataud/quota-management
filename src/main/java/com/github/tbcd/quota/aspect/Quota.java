@@ -9,38 +9,24 @@ import java.lang.annotation.Target;
 /**
  * Enforces quota limits on a method before execution.
  *
- * <p>When applied to a method, the {@link QuotaAspect} intercepts the call
- * and verifies that the current tenant has sufficient quota for the specified
- * resource. If the quota would be exceeded, a {@link QuotaExceededException}
- * is thrown and the method is not executed.</p>
- *
- * <p>Basic usage:</p>
+ * <p>Usage:</p>
  * <pre>{@code
- * @Quota(resource = Recipe.class)
- * public RecipeDto createRecipe(@RequestBody CreateRecipeRequest request) {
- *     return recipeService.create(request);
- * }
- * }</pre>
- *
- * <p>With SpEL expression for tenant:</p>
- * <pre>{@code
- * @Quota(resource = Recipe.class, tenant = "#recipe.getAuthor()")
+ * @Quota(resource = "#recipe")
  * public RecipeDto createRecipe(Recipe recipe) {
  *     return recipeService.create(recipe);
  * }
  * }</pre>
  *
- * <p>With parameter reference:</p>
+ * <p>With tenant:</p>
  * <pre>{@code
- * @Quota(resource = Recipe.class, tenant = "#userId")
- * public RecipeDto createRecipe(Long userId, CreateRecipeRequest request) {
- *     return recipeService.create(userId, request);
+ * @Quota(resource = "#recipe", tenant = "#recipe.getAuthor()")
+ * public RecipeDto createRecipe(Recipe recipe) {
+ *     return recipeService.create(recipe);
  * }
  * }</pre>
  *
  * @see QuotaAspect
  * @see QuotaExceededException
- * @see com.github.tbcd.quota.QuotaManager
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -48,32 +34,23 @@ import java.lang.annotation.Target;
 public @interface Quota {
 
 	/**
-	 * The resource type to enforce quota on.
+	 * SpEL expression to resolve the resource.
 	 *
-	 * @return the resource class to check quota for
+	 * <p>Examples:</p>
+	 * <ul>
+	 *   <li>{@code "#recipe"} - parameter reference</li>
+	 *   <li>{@code "#request.recipe"} - property access</li>
+	 *   <li>{@code "#request.getRecipe()"} - method call</li>
+	 * </ul>
+	 *
+	 * @return the SpEL expression
 	 */
-	Class<?> resource();
+	String resource();
 
 	/**
 	 * SpEL expression to resolve the tenant.
 	 *
 	 * <p>If empty, the default {@link com.github.tbcd.quota.TenantResolver} is used.</p>
-	 *
-	 * <p>The expression has access to method parameters by name using {@code #paramName}.</p>
-	 *
-	 * <p>Examples:</p>
-	 * <ul>
-	 *   <li>{@code "#userId"} - direct parameter</li>
-	 *   <li>{@code "#recipe.getAuthor()"} - method call on parameter</li>
-	 *   <li>{@code "#request.userId"} - property access</li>
-	 *   <li>{@code "#user.getId()"} - method call returning the tenant id</li>
-	 * </ul>
-	 *
-	 * <p>The expression must resolve to one of:</p>
-	 * <ul>
-	 *   <li>A {@link com.github.tbcd.quota.Tenant} instance</li>
-	 *   <li>A {@link String}, {@link Long}, or any object (will be wrapped in a Tenant)</li>
-	 * </ul>
 	 *
 	 * @return the SpEL expression, or empty to use the default TenantResolver
 	 */
@@ -89,7 +66,7 @@ public @interface Quota {
 	/**
 	 * Custom error message when quota is exceeded.
 	 *
-	 * @return the error message to use, or empty string for default message
+	 * @return the error message
 	 */
 	String message() default "";
 }

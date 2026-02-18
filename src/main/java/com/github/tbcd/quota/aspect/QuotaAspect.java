@@ -33,46 +33,51 @@ public class QuotaAspect {
 	@Before("@annotation(quota)")
 	public void checkResourceQuota(JoinPoint joinPoint, Quota quota) {
 		Tenant tenant = resolveTenant(joinPoint, quota);
-		Class<?> resourceType = quota.resource();
+		Object resource = evaluateExpression(joinPoint, quota.resource());
 		long cost = quota.cost();
 
-		QuotaResult result = quotaManager.check(tenant, resourceType, cost);
+		QuotaResult result = quotaManager.check(tenant, resource, cost);
 
 		if (!result.allowed()) {
-			String message = quota.message().isEmpty() ? "Quota exceeded for " + resourceType.getSimpleName() : quota.message();
-			throw new QuotaExceededException(message, resourceType.getSimpleName(), result.state().getUsed(), result.state().getLimit());
+			String resourceName = resource.getClass().getSimpleName();
+			String message = quota.message().isEmpty() ? "Quota exceeded for " + resourceName : quota.message();
+			throw new QuotaExceededException(message, resourceName, result.state().getUsed(), result.state().getLimit());
 		}
 	}
 
 	private Tenant resolveTenant(JoinPoint joinPoint, Quota quota) {
-		String tenantExpression = quota.tenant();
-		if (tenantExpression == null || tenantExpression.isEmpty()) {
+		String tenantExpr = quota.tenant();
+
+		if (tenantExpr == null || tenantExpr.isEmpty()) {
 			return tenantResolver.resolve();
 		}
-		Object result = evaluateExpression(joinPoint, tenantExpression);
-		return toTenant(result);
+
+		Object result = evaluateExpression(joinPoint, tenantExpr);
+
+		if (result == null) {
+			throw new IllegalArgumentException("Tenant expression resolved to null");
+		}
+
+		if (result instanceof Tenant tenant) {
+			return tenant;
+		}
+
+		return () -> result;
 	}
 
 	private Object evaluateExpression(JoinPoint joinPoint, String expression) {
 		MethodSignature signature = (MethodSignature) joinPoint.getSignature();
 		String[] parameterNames = parameterNameDiscoverer.getParameterNames(signature.getMethod());
 		Object[] args = joinPoint.getArgs();
+
 		EvaluationContext context = new StandardEvaluationContext();
+
 		if (parameterNames != null) {
 			for (int i = 0; i < parameterNames.length; i++) {
 				context.setVariable(parameterNames[i], args[i]);
 			}
 		}
-		return expressionParser.parseExpression(expression).getValue(context);
-	}
 
-	private Tenant toTenant(Object value) {
-		if (value == null) {
-			throw new IllegalArgumentException("Tenant expression resolved to null");
-		}
-		if (value instanceof Tenant tenant) {
-			return tenant;
-		}
-		return () -> value;
+		return expressionParser.parseExpression(expression).getValue(context);
 	}
 }

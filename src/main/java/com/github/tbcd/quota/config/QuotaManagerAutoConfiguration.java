@@ -1,9 +1,7 @@
 package com.github.tbcd.quota.config;
 
-import com.github.tbcd.quota.QuotaLimitResolver;
-import com.github.tbcd.quota.QuotaManager;
-import com.github.tbcd.quota.ResourceCounter;
-import com.github.tbcd.quota.ResourceCounterRegistry;
+import com.github.tbcd.quota.*;
+import com.github.tbcd.quota.aspect.QuotaAspect;
 import com.github.tbcd.quota.impl.DefaultQuotaManager;
 import com.github.tbcd.quota.impl.DefaultResourceCounterRegistry;
 import com.github.tbcd.quota.impl.EmptyQuotaLimitResolver;
@@ -33,5 +31,19 @@ public class QuotaManagerAutoConfiguration {
 	@ConditionalOnMissingBean
 	public QuotaManager quotaManager(ResourceCounterRegistry resourceCounterRegistry, QuotaLimitResolver quotaLimitResolver) {
 		return new DefaultQuotaManager(resourceCounterRegistry, quotaLimitResolver);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public TenantResolver tenantResolver() {
+		return () -> {
+			throw new IllegalStateException("No TenantResolver configured. Please provide a TenantResolver bean.");
+		};
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public QuotaAspect quotaAspect(QuotaManager quotaManager, TenantResolver tenantResolver) {
+		return new QuotaAspect(quotaManager, tenantResolver);
 	}
 }

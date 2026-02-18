@@ -1,0 +1,70 @@
+name: Create Release from POM version
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from pom.xml
+        id: extract_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version extracted: $VERSION"
+
+      - name: Check if SNAPSHOT
+        if: contains(steps.extract_version.outputs.version, 'SNAPSHOT')
+        run: |
+          echo "⚠️ SNAPSHOT version detected, skipping release"
+          echo "### ⏭️ Release skipped" >> $GITHUB_SUMMARY
+          echo "SNAPSHOT versions are not released." >> $GITHUB_SUMMARY
+          exit 0
+
+      - name: Check if release already exists
+        id: check_release
+        if: ${{ !contains(steps.extract_version.outputs.version, 'SNAPSHOT') }}
+        run: |
+          TAG="${{ steps.extract_version.outputs.version }}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Release $TAG already exists, skipping..."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅ Release $TAG does not exist, will create it"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: ${{ !contains(steps.extract_version.outputs.version, 'SNAPSHOT') && steps.check_release.outputs.exists == 'false' }}
+        run: |
+          TAG="${{ steps.extract_version.outputs.version }}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            --target master
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: ${{ !contains(steps.extract_version.outputs.version, 'SNAPSHOT') }}
+        run: |
+          TAG="${{ steps.extract_version.outputs.version }}"
+          if [ "${{ steps.check_release.outputs.exists }}" == "true" ]; then
+            echo "### ⏭️ Release skipped" >> $GITHUB_SUMMARY
+            echo "Release **$TAG** already exists." >> $GITHUB_SUMMARY
+          else
+            echo "### 🚀 Release created" >> $GITHUB_SUMMARY
+            echo "Release **$TAG** has been created successfully!" >> $GITHUB_SUMMARY
+          fi
